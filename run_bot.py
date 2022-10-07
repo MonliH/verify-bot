@@ -3,11 +3,13 @@ from random import randint
 import re
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import db
 from discord.ext import commands
 import discord
+
 intents = discord.Intents(dm_messages=True, guilds=True, members=True)
 
 from send_email import send_verify
@@ -20,21 +22,28 @@ email_re = re.compile(r"^\S+@limestone\.on\.ca$")
 SERVER_ID = int(os.getenv("SERVER_ID"))
 ROLE_ID = int(os.getenv("ROLE_ID"))
 
+
 async def verify_role(user: discord.User):
     guild = bot.get_guild(SERVER_ID)
     member = guild.get_member(user.id)
     role = guild.get_role(ROLE_ID)
     await member.add_roles(role)
 
+
 @bot.event
 async def on_member_join(member: discord.Message):
-    if member.guild.id != SERVER_ID: return
+    if member.guild.id != SERVER_ID:
+        return
     guild = bot.get_guild(SERVER_ID)
-    await member.send(f"Hey! to get access to the rest of the \"{guild.name}\" server, enter your **school email (ending with `@limestone.on.ca`)**")
+    await member.send(
+        f'Hey! to get access to the rest of the "{guild.name}" server, enter your **school email (ending with `@limestone.on.ca`)**'
+    )
+
 
 @bot.event
 async def on_message(message: discord.Message):
-    if message.author == bot.user: return
+    if message.author == bot.user:
+        return
 
     if not message.guild:
         try:
@@ -47,26 +56,48 @@ async def on_message(message: discord.Message):
                 case db.SentVerification(email, code):
                     if content == code:
                         await db.set_state(snowflake, db.Verified())
-                        await message.channel.send(f":tada: You have been verified using the email **{email}**. Enjoy!")
+                        await message.channel.send(
+                            f":tada: You have been verified using the email **{email}**. Enjoy!"
+                        )
                         await verify_role(message.author)
                         await db.add_email(email)
-                    else:  
-                        await message.channel.send(f":x: You provided the wrong code. Please try verifying again (send me your email).")
+                    else:
+                        await message.channel.send(
+                            f":x: You provided the wrong code. Please try verifying again (send me your email)."
+                        )
                         await db.reset_state(snowflake)
                 case db.Verified():
-                    await message.channel.send(f"You have already been verified. What are you doing here? :clown:")
+                    await message.channel.send(
+                        f"You have already been verified. What are you doing here? :clown:"
+                    )
                 case _:
                     if email_re.findall(content):
                         if not await db.used_email(content):
-                            msg = await message.channel.send(f"Sending verification email...")
-                            send_verify(content, str(message.author.display_name), "KSS Tutoring Program", random_code)
-                            await db.set_state(snowflake, db.SentVerification(content, random_code))
-                            await msg.edit(content=f"Email sent to {content}. Please enter your verification code.")
+                            msg = await message.channel.send(
+                                f"Sending verification email..."
+                            )
+                            send_verify(
+                                content,
+                                str(message.author.display_name),
+                                "KSS Tutoring Program",
+                                random_code,
+                            )
+                            await db.set_state(
+                                snowflake, db.SentVerification(content, random_code)
+                            )
+                            await msg.edit(
+                                content=f"Email sent to {content}. Please enter your verification code."
+                            )
                         else:
-                            await message.channel.send(":x: Email has already been used.")
+                            await message.channel.send(
+                                ":x: Email has already been used."
+                            )
                     else:
-                        await message.channel.send(":x: Invalid email specified. Please enter your **school email (ending with @limestone.on.ca)**.")
+                        await message.channel.send(
+                            ":x: Invalid email specified. Please enter your **school email (ending with @limestone.on.ca)**."
+                        )
         except discord.errors.Forbidden:
             pass
+
 
 bot.run(TOKEN)
