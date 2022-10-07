@@ -1,0 +1,5 @@
+setuptools
+discord.py
+python-dotenv
+motor
+aiohttp
