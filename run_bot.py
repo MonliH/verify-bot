@@ -17,10 +17,15 @@ from send_email import send_verify
 
 TOKEN = os.getenv("TOKEN")
 bot = commands.Bot(command_prefix="$", intents=intents)
-email_re = re.compile(r"^\S+@limestone\.on\.ca$")
+
+DOMAIN = os.getenv('DOMAIN')
+email_domain_re = re.escape(DOMAIN)
+email_re = re.compile(rf"^\S+@{email_domain_re}$")
 
 SERVER_ID = int(os.getenv("SERVER_ID"))
 ROLE_ID = int(os.getenv("ROLE_ID"))
+
+SERVER_NAME = os.getenv("SERVER_NAME")
 
 
 async def verify_role(user: discord.User):
@@ -63,7 +68,7 @@ async def on_message(message: discord.Message):
                         await db.add_email(email)
                     else:
                         await message.channel.send(
-                            f":x: You provided the wrong code. Please try verifying again (send me your email)."
+                            f":x: You provided the wrong code. Please try verifying again (send me your email again)."
                         )
                         await db.reset_state(snowflake)
                 case db.Verified():
@@ -79,7 +84,7 @@ async def on_message(message: discord.Message):
                             send_verify(
                                 content,
                                 str(message.author.display_name),
-                                "KSS Tutoring Program",
+                                SERVER_NAME,
                                 random_code,
                             )
                             await db.set_state(
@@ -94,7 +99,7 @@ async def on_message(message: discord.Message):
                             )
                     else:
                         await message.channel.send(
-                            ":x: Invalid email specified. Please enter your **school email (ending with @limestone.on.ca)**."
+                            f":x: Invalid email specified. Please enter your **school email (ending with @{DOMAIN})**."
                         )
         except discord.errors.Forbidden:
             pass
