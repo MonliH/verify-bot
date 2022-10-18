@@ -54,8 +54,8 @@ async def get_state(snowflake: int) -> Optional[Status]:
         return Verified()
 
 
-async def add_email(email: str):
-    await used_emails.insert_one({"email": email})
+async def add_email(email: str, userid: str):
+    await used_emails.insert_one({"email": email, "userid": userid})
 
 
 async def used_email(email: str) -> bool:

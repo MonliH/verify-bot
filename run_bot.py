@@ -65,7 +65,7 @@ async def on_message(message: discord.Message):
                             f":tada: You have been verified using the email **{email}**. Enjoy!"
                         )
                         await verify_role(message.author)
-                        await db.add_email(email)
+                        await db.add_email(email, str(snowflake))
                     else:
                         await message.channel.send(
                             f":x: You provided the wrong code. Please try verifying again (send me your email again)."
