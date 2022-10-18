@@ -6,10 +6,6 @@ from email.mime.text import MIMEText
 gmail_user = getenv("GMAIL_USER")
 gmail_password = getenv("GMAIL_PASSWORD")
 
-server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-server.ehlo()
-server.login(gmail_user, gmail_password)
-
 basepath = path.dirname(__file__)
 static = path.abspath(path.join(basepath, "static"))
 
@@ -28,7 +24,11 @@ def send(to: str, subject: str, html: str):
     html_part = MIMEText(html, "html")
     msg.attach(html_part)
 
+    server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+    server.ehlo()
+    server.login(gmail_user, gmail_password)
     server.sendmail(gmail_user, to, msg.as_string())
+    server.close()
 
 
 def send_verify(to: str, name: str, server: str, code: str):
