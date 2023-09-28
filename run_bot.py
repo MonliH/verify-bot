@@ -22,33 +22,49 @@ DOMAIN = os.getenv('DOMAIN')
 email_domain_re = re.escape(DOMAIN)
 email_re = re.compile(rf"^\S+@{email_domain_re}$")
 
-SERVER_ID = int(os.getenv("SERVER_ID"))
-ROLE_ID = int(os.getenv("ROLE_ID"))
+_SERVER_IDS = list(map(int,os.getenv("SERVER_ID").split(",")))
+_ROLE_IDS = list(map(int,os.getenv("ROLE_ID").split(",")))
 
-SERVER_NAME = os.getenv("SERVER_NAME")
+SERVERS = set(_SERVER_IDS)
+SERVER_ROLES = list(zip(_SERVER_IDS, _ROLE_IDS))
 
 
 async def verify_role(user: discord.User):
-    guild = bot.get_guild(SERVER_ID)
-    member = guild.get_member(user.id)
-    role = guild.get_role(ROLE_ID)
-    await member.add_roles(role)
+    # add member to all servers in SERVER_ROLES
+    for server_id, role_id in SERVER_ROLES:
+        guild = bot.get_guild(server_id)
+        member = guild.get_member(user.id)
+
+        # make sure the user is in the server
+        if member:
+            role = guild.get_role(role_id)
+            await member.add_roles(role)
 
 
 @bot.event
 async def on_member_join(member: discord.Message):
-    if member.guild.id != SERVER_ID:
+    if member.guild.id not in SERVERS:
         return
-    guild = bot.get_guild(SERVER_ID)
-    await member.send(
-        f'Hey! to get access to the rest of the "{guild.name}" server, enter your **school email (ending with `@limestone.on.ca`)**'
-    )
+
+    user_id = member.id
+    verification_info = await db.get_state(user_id)
+
+    match verification_info:
+        case db.SentVerification(_, _) | None:
+            guild = bot.get_guild(member.guild.id)
+            await member.send(
+                f'Hey! to get access to the rest of the "{guild.name}" server, enter your **school email (ending with `@limestone.on.ca`)**'
+            )
+        case db.Verified():
+            await verify_role(member)
 
 
 @bot.event
 async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
+    
+    await verify_role(message.author)
 
     if not message.guild:
         try:
@@ -64,8 +80,8 @@ async def on_message(message: discord.Message):
                         await message.channel.send(
                             f":tada: You have been verified using the email **{email}**. Enjoy!"
                         )
-                        await verify_role(message.author)
                         await db.add_email(email, str(snowflake))
+                        await verify_role(message.author)
                     else:
                         await message.channel.send(
                             f":x: You provided the wrong code. Please try verifying again (send me your email again)."
@@ -84,14 +100,14 @@ async def on_message(message: discord.Message):
                             send_verify(
                                 content,
                                 str(message.author.display_name),
-                                SERVER_NAME,
+                                "KSS Discord Servers",
                                 random_code,
                             )
                             await db.set_state(
                                 snowflake, db.SentVerification(content, random_code)
                             )
                             await msg.edit(
-                                content=f"Email sent to {content}. Please enter your verification code."
+                                content=f"Email sent to {content}. Please enter your verification code. If you do not receive an email, please check your spam folder."
                             )
                         else:
                             await message.channel.send(
@@ -103,6 +119,5 @@ async def on_message(message: discord.Message):
                         )
         except discord.errors.Forbidden:
             pass
-
 
 bot.run(TOKEN)

@@ -1,9 +1,11 @@
 from typing import Optional, Union
+import asyncio
 import motor.motor_asyncio
 from dataclasses import dataclass
 from os import environ
 
 client = motor.motor_asyncio.AsyncIOMotorClient(environ["DB_CONNECTION"])
+client.get_io_loop = asyncio.get_running_loop # patch to use discord.py's async event loop
 
 db = client.verify
 state_collection = db["state"]

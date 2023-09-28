@@ -34,7 +34,7 @@ def send(to: str, subject: str, html: str):
 def send_verify(to: str, name: str, server: str, code: str):
     send(
         to,
-        f'Verify for "{server}"',
+        f'Verify for {server}',
         verify_text.replace("{{name}}", name)
         .replace("{{server}}", server)
         .replace("{{code}}", code),
