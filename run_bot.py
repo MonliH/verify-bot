@@ -64,8 +64,6 @@ async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
     
-    await verify_role(message.author)
-
     if not message.guild:
         try:
             random_code = randint(0, 99999)
